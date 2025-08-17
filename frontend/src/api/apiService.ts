@@ -1,4 +1,4 @@
-import type { Service, ServiceAssignment, User, Department } from '../types';
+import type { Service, User, Department } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
@@ -51,7 +51,6 @@ const mockDepartments: Department[] = [
 
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    // In a real app, this would make actual HTTP requests
     // For demo purposes, we'll simulate API calls with mock data
     
     const url = `${API_BASE_URL}${endpoint}`;

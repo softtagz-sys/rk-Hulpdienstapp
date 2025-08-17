@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Service, ServiceAssignment } from '../types';
+import type { Service } from '../types';
 import { apiService } from '../api/apiService';
 
 export const useServices = (departmentId?: string) => {

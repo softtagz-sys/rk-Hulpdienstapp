@@ -1,27 +1,65 @@
 import { useState, useEffect } from 'react';
+import { Amplify } from 'aws-amplify';
+import {
+  signIn,
+  signUp,
+  signOut,
+  getCurrentUser,
+  fetchAuthSession,
+  confirmSignUp as amplifyConfirmSignUp,
+  resendSignUpCode,
+  type SignUpInput
+} from 'aws-amplify/auth';
+import { CookieStorage } from 'aws-amplify/utils';
+import { cognitoUserPoolsTokenProvider } from 'aws-amplify/auth/cognito';
 import type { User } from '../types';
+
+// Configure Amplify
+Amplify.configure({
+  Auth: {
+    Cognito: {
+      userPoolId: import.meta.env.VITE_USER_POOL_ID!,
+      userPoolClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID!,
+    },
+  },
+});
+
+// Use CookieStorage for token persistence
+cognitoUserPoolsTokenProvider.setKeyValueStorage(
+    new CookieStorage({ domain: window.location.hostname })
+);
+
+console.log(import.meta.env.VITE_USER_POOL_ID, import.meta.env.VITE_USER_POOL_CLIENT_ID);
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
+  useEffect(() => { checkAuthStatus(); }, []);
 
   const checkAuthStatus = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const userData = localStorage.getItem('userData');
+      setIsLoading(true);
+      const currentUser = await getCurrentUser();
+      const session = await fetchAuthSession();
 
-      if (token && userData) {
-        setUser(JSON.parse(userData));
+      if (currentUser && session.tokens) {
+        setUser({
+          id: currentUser.userId,
+          email: currentUser.signInDetails?.loginId ?? '',
+          name: currentUser.signInDetails?.loginId?.split('@')[0] ?? 'User',
+          role: 'volunteer',
+          departments: ['Sint-Job'],
+          qualifications: [],
+          notifications: true,
+          phone: ''
+        });
         setIsAuthenticated(true);
       }
-    } catch (error) {
-      console.log('Not authenticated');
+    } catch {
       setIsAuthenticated(false);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -29,87 +67,98 @@ export const useAuth = () => {
 
   const login = async (email: string, password: string) => {
     try {
-      // Simulate API call - replace with actual authentication
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check demo credentials
-      const validCredentials = [
-        { email: 'volunteer@rodekruis.nl', password: 'demo123', role: 'volunteer' as const },
-        { email: 'supervisor@rodekruis.nl', password: 'demo123', role: 'supervisor' as const }
-      ];
-
-      const validUser = validCredentials.find(cred =>
-          cred.email === email && cred.password === password
-      );
-
-      if (!validUser) {
-        return { success: false, error: 'Ongeldige inloggegevens' };
+      const { isSignedIn, nextStep } = await signIn({ username: email, password });
+      if (isSignedIn) {
+        await checkAuthStatus();
+        return { success: true };
       }
-
-      // Mock user data based on email
-      const userData: User = {
-        id: 'user_' + Date.now(),
-        email,
-        name: validUser.role === 'supervisor' ? 'Maria Supervisor' : 'Jan Janssen',
-        role: validUser.role,
-        departments: ['Sint-Job'],
-        qualifications: [
-          { id: '1', name: 'ehbo', level: 1 },
-          { id: '2', name: 'helper', level: 2 }
-        ],
-        notifications: true,
-        phone: '+31 6 12345678'
-      };
-
-      // Store auth data
-      localStorage.setItem('authToken', 'mock_token_' + Date.now());
-      localStorage.setItem('userData', JSON.stringify(userData));
-
-      setUser(userData);
-      setIsAuthenticated(true);
-
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: 'Er is een fout opgetreden bij het inloggen' };
+      if (nextStep.signInStep === 'CONFIRM_SIGN_UP')
+        return { success: false, error: 'Account niet geverifieerd. Controleer je email.', needsVerification: true };
+      return { success: false, error: 'Aanmelding vereist aanvullende stappen.' };
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      let message = 'Er is een fout opgetreden bij het inloggen';
+      if (error.name === 'NotAuthorizedException') message = 'Ongeldige inloggegevens';
+      if (error.name === 'UserNotConfirmedException') message = 'Account niet geverifieerd. Controleer je email.';
+      if (error.name === 'UserNotFoundException') message = 'Gebruiker niet gevonden';
+      if (error.name === 'TooManyRequestsException') message = 'Te veel inlogpogingen. Probeer het later opnieuw.';
+      return { success: false, error: message };
     }
   };
 
-  const signup = async (email: string, password: string, name: string, role: 'volunteer' | 'supervisor') => {
+  const signup = async (
+      email: string,
+      password: string,
+      name?: string,
+      role?: 'volunteer' | 'supervisor'
+  ) => {
     try {
-      // Simulate API call - replace with actual registration
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const resolvedName = name?.trim() || email.split('@')[0] || 'User';
+      const resolvedRole = role || 'volunteer';
 
-      const userData: User = {
-        id: 'user_' + Date.now(),
-        email,
-        name,
-        role,
-        departments: ['Sint-Job'],
-        qualifications: [],
-        notifications: true
+      const signUpInput: SignUpInput = {
+        username: email,
+        password,
+        options: {
+          userAttributes: {
+            email,
+            name: resolvedName,
+            'custom:role': resolvedRole
+          }
+        }
       };
 
-      // Store auth data
-      localStorage.setItem('authToken', 'mock_token_' + Date.now());
-      localStorage.setItem('userData', JSON.stringify(userData));
+      console.log('[Auth] SignUp payload:', signUpInput);
 
-      setUser(userData);
-      setIsAuthenticated(true);
+      const { isSignUpComplete, nextStep } = await signUp(signUpInput);
 
+      if (isSignUpComplete) return { success: true };
+      if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+        return {
+          success: false,
+          error: 'Registratie succesvol! Controleer je email voor de verificatiecode.',
+          needsVerification: true
+        };
+      }
+
+      return { success: false, error: 'Registratie vereist aanvullende stappen.' };
+    } catch (error: any) {
+      console.error('[Auth] Signup full error:', error);
+      let message = 'Registratie mislukt';
+      if (error.name === 'UsernameExistsException') message = 'Een account met dit emailadres bestaat al';
+      if (error.name === 'InvalidPasswordException') message = 'Wachtwoord voldoet niet aan de vereisten';
+      if (error.name === 'InvalidParameterException') message = `Ongeldige parameters opgegeven: ${error.message || ''}`;
+      return { success: false, error: message };
+    }
+  };
+
+  const confirmSignUp = async (email: string, code: string) => {
+    try {
+      await amplifyConfirmSignUp({ username: email, confirmationCode: code });
       return { success: true };
-    } catch (error) {
-      return { success: false, error: 'Registration failed' };
+    } catch (error: any) {
+      let message = 'Verificatie mislukt';
+      if (error.name === 'CodeMismatchException') message = 'Ongeldige verificatiecode';
+      if (error.name === 'ExpiredCodeException') message = 'Verificatiecode is verlopen';
+      return { success: false, error: message };
+    }
+  };
+
+  const resendVerificationCode = async (email: string) => {
+    try {
+      await resendSignUpCode({ username: email });
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Fout bij het versturen van verificatiecode' };
     }
   };
 
   const logout = async () => {
     try {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userData');
+      await signOut({ global: true });
+    } finally {
       setUser(null);
       setIsAuthenticated(false);
-    } catch (error) {
-      console.error('Logout failed:', error);
     }
   };
 
@@ -120,6 +169,8 @@ export const useAuth = () => {
     login,
     signup,
     logout,
-    checkAuthStatus
+    checkAuthStatus,
+    confirmSignUp,
+    resendVerificationCode
   };
 };

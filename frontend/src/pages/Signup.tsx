@@ -18,6 +18,7 @@ const Signup: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -36,8 +37,12 @@ const Signup: React.FC = () => {
       setError('E-mailadres is verplicht');
       return false;
     }
-    if (formData.password.length < 6) {
-      setError('Wachtwoord moet minimaal 6 karakters bevatten');
+    if (formData.password.length < 8) {
+      setError('Wachtwoord moet minimaal 8 karakters bevatten');
+      return false;
+    }
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      setError('Wachtwoord moet minimaal één kleine letter, één hoofdletter en één cijfer bevatten');
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -49,190 +54,210 @@ const Signup: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
     setError('');
+    setNeedsVerification(false);
 
     const result = await signup(formData.email, formData.password, formData.name, formData.role);
-    
+
     if (result.success) {
       navigate('/');
     } else {
       setError(result.error || 'Account aanmaken mislukt');
+      if (result.needsVerification) {
+        setNeedsVerification(true);
+      }
     }
-    
+
     setIsSubmitting(false);
   };
 
+  const handleGoToVerification = () => {
+    navigate('/verify-email', { state: { email: formData.email } });
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
-      <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-2xl">+</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Rode Kruis</h1>
-          <p className="text-gray-600 mt-2">Hulpdienst Platform</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Account aanmaken</h2>
-            <p className="text-gray-600 text-sm">
-              Maak een account aan om toegang te krijgen tot het platform.
-            </p>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">{error}</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-8">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-2xl">+</span>
             </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Volledige naam
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Jan Janssen"
-                required
-              />
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Rode Kruis</h1>
+            <p className="text-gray-600 mt-2">Hulpdienst Platform</p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              E-mailadres
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="naam@rodekruis.nl"
-                required
-              />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Account aanmaken</h2>
+              <p className="text-gray-600 text-sm">
+                Maak een account aan om toegang te krijgen tot het platform.
+              </p>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Rol
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                <input
-                  type="radio"
-                  name="role"
-                  value="volunteer"
-                  checked={formData.role === 'volunteer'}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
-                  className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
-                />
-                <User size={16} className="text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">Vrijwilliger</span>
-              </label>
-              <label className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                <input
-                  type="radio"
-                  name="role"
-                  value="supervisor"
-                  checked={formData.role === 'supervisor'}
-                  onChange={(e) => handleInputChange('role', e.target.value)}
-                  className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
-                />
-                <UserCheck size={16} className="text-gray-600" />
-                <span className="text-sm font-medium text-gray-700">Leidinggevende</span>
-              </label>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Wachtwoord
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Minimaal 6 karakters"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bevestig wachtwoord
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Herhaal uw wachtwoord"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center"
-          >
-            {isSubmitting ? (
-              <>
-                <LoadingSpinner size="sm" className="mr-2" />
-                Account aanmaken...
-              </>
-            ) : (
-              'Account aanmaken'
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <p className="text-red-800 text-sm">{error}</p>
+                  {needsVerification && (
+                      <button
+                          type="button"
+                          onClick={handleGoToVerification}
+                          className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium underline"
+                      >
+                        Account verifiëren
+                      </button>
+                  )}
+                </div>
             )}
-          </button>
 
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Al een account?{' '}
-              <Link to="/login" className="text-red-600 hover:text-red-700 font-medium">
-                Inloggen
-              </Link>
-            </p>
-          </div>
-        </form>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Volledige naam
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Jan Janssen"
+                    required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                E-mailadres
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="naam@rodekruis.nl"
+                    required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Rol
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                      type="radio"
+                      name="role"
+                      value="volunteer"
+                      checked={formData.role === 'volunteer'}
+                      onChange={(e) => handleInputChange('role', e.target.value)}
+                      className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                  />
+                  <User size={16} className="text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">Vrijwilliger</span>
+                </label>
+                <label className="flex items-center space-x-3 p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                  <input
+                      type="radio"
+                      name="role"
+                      value="supervisor"
+                      checked={formData.role === 'supervisor'}
+                      onChange={(e) => handleInputChange('role', e.target.value)}
+                      className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
+                  />
+                  <UserCheck size={16} className="text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">Leidinggevende</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Wachtwoord
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Min. 8 karakters, 1 hoofdletter, 1 cijfer"
+                    required
+                />
+                <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Moet minimaal 8 karakters, één hoofdletter en één cijfer bevatten
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bevestig wachtwoord
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    placeholder="Herhaal uw wachtwoord"
+                    required
+                />
+                <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center"
+            >
+              {isSubmitting ? (
+                  <>
+                    <LoadingSpinner size="sm" className="mr-2" />
+                    Account aanmaken...
+                  </>
+              ) : (
+                  'Account aanmaken'
+              )}
+            </button>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Al een account?{' '}
+                <Link to="/login" className="text-red-600 hover:text-red-700 font-medium">
+                  Inloggen
+                </Link>
+              </p>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
   );
 };
 

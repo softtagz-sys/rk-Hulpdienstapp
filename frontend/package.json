@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@types/react-router-dom": "^5.3.3",
+    "aws-amplify": "^6.15.5",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -27,6 +28,10 @@
     "eslint-plugin-react-refresh": "^0.4.11",
     "globals": "^15.9.0",
     "postcss": "^8.4.35",
+    "serverless-cloudfront-invalidate": "^1.12.2",
+    "serverless-finch": "^4.0.4",
+    "serverless-s3-sync": "^3.4.0",
+    "serverless-single-page-app-plugin": "^1.0.4",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.3.0",
