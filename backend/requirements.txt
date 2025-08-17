@@ -1,0 +1,14 @@
+pydantic~=2.11.7
+pydantic[email]==2.11.7
+fastapi~=0.116.1
+boto3~=1.40.6
+mangum~=0.19.0
+uvicorn[standard]~=0.24.0
+pydantic-settings~=2.1.0
+python-jose[cryptography]~=3.3.0
+python-multipart~=0.0.6
+passlib[bcrypt]~=1.7.4
+python-decouple~=3.8
+
+botocore~=1.40.6
+requests~=2.32.4

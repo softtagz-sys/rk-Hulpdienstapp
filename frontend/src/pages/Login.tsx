@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const Login: React.FC = () => {
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -15,6 +15,13 @@ const Login: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [needsVerification, setNeedsVerification] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      navigate('/');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -30,10 +37,16 @@ const Login: React.FC = () => {
     setError('');
     setNeedsVerification(false);
 
+    console.log('Starting login process...');
     const result = await login(formData.email, formData.password);
+    console.log('Login result:', result);
 
     if (result.success) {
-      navigate('/');
+      console.log('Login successful, navigating to home...');
+      // Add a small delay to ensure state is fully updated
+      setTimeout(() => {
+        navigate('/');
+      }, 100);
     } else {
       setError(result.error || 'Inloggen mislukt');
       if (result.needsVerification) {

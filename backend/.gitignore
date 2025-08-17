@@ -1,0 +1,4 @@
+.env
+.serverless
+.venv
+node_modules

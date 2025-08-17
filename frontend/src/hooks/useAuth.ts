@@ -68,15 +68,56 @@ export const useAuth = () => {
   const login = async (email: string, password: string) => {
     try {
       const { isSignedIn, nextStep } = await signIn({ username: email, password });
+
       if (isSignedIn) {
-        await checkAuthStatus();
+        // Add a small delay to ensure AWS Cognito session is fully established
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Retry checkAuthStatus with exponential backoff if needed
+        let retries = 3;
+        let success = false;
+
+        while (retries > 0 && !success) {
+          try {
+            const currentUser = await getCurrentUser();
+            const session = await fetchAuthSession();
+
+            if (currentUser && session.tokens) {
+              setUser({
+                id: currentUser.userId,
+                email: currentUser.signInDetails?.loginId ?? '',
+                name: currentUser.signInDetails?.loginId?.split('@')[0] ?? 'User',
+                role: 'volunteer',
+                departments: ['Sint-Job'],
+                qualifications: [],
+                notifications: true,
+                phone: ''
+              });
+              setIsAuthenticated(true);
+              success = true;
+            }
+          } catch (error) {
+            console.log(`Auth check retry ${4 - retries} failed:`, error);
+            retries--;
+            if (retries > 0) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * (4 - retries)));
+            }
+          }
+        }
+
+        if (!success) {
+          console.error('Failed to establish authentication state after login');
+          return { success: false, error: 'Authenticatie probleem na inloggen' };
+        }
+
         return { success: true };
       }
+
       if (nextStep.signInStep === 'CONFIRM_SIGN_UP')
         return { success: false, error: 'Account niet geverifieerd. Controleer je email.', needsVerification: true };
       return { success: false, error: 'Aanmelding vereist aanvullende stappen.' };
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('Login error:', error);
       let message = 'Er is een fout opgetreden bij het inloggen';
       if (error.name === 'NotAuthorizedException') message = 'Ongeldige inloggegevens';
       if (error.name === 'UserNotConfirmedException') message = 'Account niet geverifieerd. Controleer je email.';
