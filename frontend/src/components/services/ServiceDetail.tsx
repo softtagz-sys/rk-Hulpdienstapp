@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, Clock, MapPin, Users, Award, Phone, Mail } from 'lucide-react';
-import type { Service, ServiceAssignment } from '../../types';
+import type { Service } from '../../types';
 
 interface ServiceDetailProps {
   service: Service;
@@ -10,10 +10,9 @@ interface ServiceDetailProps {
 
 const ServiceDetail: React.FC<ServiceDetailProps> = ({
   service,
-  onAssignVolunteer,
   showManagement = false
 }) => {
-  const getQualificationIcon = (qualification: string) => {
+  const getQualificationIcon = () => {
     return <Award size={16} className="text-blue-600" />;
   };
 
@@ -62,7 +61,7 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
           </div>
           <div className="flex items-center text-gray-600">
             <Clock size={20} className="mr-3" />
-            <span>{service.startTime} - {service.endTime}</span>
+            <span>{service.start_time} - {service.end_time}</span>
           </div>
           <div className="flex items-center text-gray-600">
             <MapPin size={20} className="mr-3" />
@@ -70,17 +69,17 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
           </div>
           <div className="flex items-center text-gray-600">
             <Users size={20} className="mr-3" />
-            <span>{service.assignedVolunteers.length} / {service.maxVolunteers} vrijwilligers</span>
+            <span>{service.assigned_volunteers?.length || 0} / {service.max_volunteers} vrijwilligers</span>
           </div>
         </div>
 
-        {service.requiredQualifications.length > 0 && (
+        {(service.required_qualifications || []).length > 0 && (
           <div className="mt-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Vereiste kwalificaties</h3>
             <div className="flex flex-wrap gap-2">
-              {service.requiredQualifications.map((qualification, index) => (
+              {(service.required_qualifications || []).map((qualification, index) => (
                 <div key={index} className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                  {getQualificationIcon(qualification)}
+                  {getQualificationIcon()}
                   <span className="ml-2 capitalize">{qualification}</span>
                 </div>
               ))}
@@ -92,28 +91,28 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
       {/* Volunteers List */}
       <div className="bg-white rounded-lg shadow-md p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Vrijwilligers ({service.assignedVolunteers.length})
+          Vrijwilligers ({service.assigned_volunteers?.length || 0})
         </h3>
 
-        {service.assignedVolunteers.length === 0 ? (
+        {(service.assigned_volunteers?.length || 0) === 0 ? (
           <p className="text-gray-500 text-center py-8">Nog geen vrijwilligers ingeschreven</p>
         ) : (
           <div className="space-y-4">
-            {service.assignedVolunteers.map((assignment) => (
+            {(service.assigned_volunteers || []).map((assignment) => (
               <div
-                key={assignment.id}
+                key={assignment.assignment_id || assignment.id}
                 className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-gray-600">
-                      {assignment.volunteerName.charAt(0)}
+                      {(assignment.volunteer_name || '').charAt(0)}
                     </span>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">{assignment.volunteerName}</h4>
+                    <h4 className="font-medium text-gray-900">{assignment.volunteer_name}</h4>
                     <div className="flex items-center space-x-2 mt-1">
-                      {assignment.volunteerQualifications.map((qual, index) => (
+                      {(assignment.volunteer_qualifications || []).map((qual, index) => (
                         <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                           {qual}
                         </span>

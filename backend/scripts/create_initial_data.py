@@ -21,14 +21,6 @@ def create_initial_departments():
                 'active': True,
                 'created_at': datetime.utcnow().isoformat(),
                 'updated_at': datetime.utcnow().isoformat()
-            },
-            {
-                'department_id': str(uuid.uuid4()),
-                'name': 'Rand',
-                'code': 'RD',
-                'active': True,
-                'created_at': datetime.utcnow().isoformat(),
-                'updated_at': datetime.utcnow().isoformat()
             }
         ]
 

@@ -36,7 +36,7 @@ const VolunteerDashboard: React.FC = () => {
 
   const upcomingServices = services.filter(s => new Date(s.date) >= new Date());
   const myServices = services.filter(s => 
-    s.assignedVolunteers.some(a => a.volunteerId === user?.id)
+    s.assigned_volunteers.some(a => a.volunteer_id === user?.id)
   );
 
   return (
@@ -91,7 +91,7 @@ const VolunteerDashboard: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-600">Ingeschreven</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {services.filter(s => s.assignedVolunteers.some(a => a.volunteerId === user?.id && a.preference === 'enrolled')).length}
+                    {services.filter(s => s.assigned_volunteers.some(a => a.volunteer_id === user?.id && a.preference === 'enrolled')).length}
                   </p>
                 </div>
                 <div className="w-6 h-6 bg-green-500 rounded-full"></div>
@@ -113,7 +113,7 @@ const VolunteerDashboard: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myServices.map(service => {
-                  const userAssignment = service.assignedVolunteers.find(a => a.volunteerId === user?.id);
+                  const userAssignment = service.assigned_volunteers.find(a => a.volunteer_id === user?.id);
                   return (
                     <ServiceCard
                       key={service.id}
@@ -137,7 +137,7 @@ const VolunteerDashboard: React.FC = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {upcomingServices.map(service => {
-                  const userAssignment = service.assignedVolunteers.find(a => a.volunteerId === user?.id);
+                  const userAssignment = service.assigned_volunteers.find(a => a.volunteer_id === user?.id);
                   return (
                     <ServiceCard
                       key={service.id}

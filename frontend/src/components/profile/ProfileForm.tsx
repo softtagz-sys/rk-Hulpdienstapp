@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Save, AlertCircle } from 'lucide-react';
-import type { User, Qualification } from '../../types';
+import { Save } from 'lucide-react';
+import type { User } from '../../types';
+import {QUALIFICATIONS} from "../../constants/Qualifications.ts";
+
 
 interface ProfileFormProps {
   user: User;
@@ -12,18 +14,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user, onSave }) => {
     name: user.name,
     email: user.email,
     phone: user.phone || '',
-    allergies: user.allergies || '',
-    medicalInfo: user.medicalInfo || '',
     notifications: user.notifications
   });
-  const [selectedQualifications, setSelectedQualifications] = useState<string[]>(
-    user.qualifications.map(q => q.name)
-  );
+  const [selectedQualifications, setSelectedQualifications] = useState<string[]>(user.qualifications || []);
   const [selectedDepartments, setSelectedDepartments] = useState<string[]>(user.departments);
   const [isSaving, setIsSaving] = useState(false);
 
-  const availableQualifications = ['helper', 'ehbo', 'event', 'vpk', 'arts'];
-  const availableDepartments = ['Sint-Job', 'Rand'];
+  const availableQualifications = QUALIFICATIONS;
+  const availableDepartments = ['Sint-Job'];
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
@@ -53,15 +51,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user, onSave }) => {
     setIsSaving(true);
 
     try {
-      const qualifications: Qualification[] = selectedQualifications.map(name => ({
-        id: `${name}_${Date.now()}`,
-        name: name as any,
-        level: 1
-      }));
-
       await onSave({
         ...formData,
-        qualifications,
+        qualifications: selectedQualifications,
         departments: selectedDepartments
       });
 
@@ -157,33 +149,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user, onSave }) => {
               </label>
             ))}
           </div>
-        </div>
-
-        {/* Medical Information */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Allergieën / Dieetwensen
-          </label>
-          <textarea
-            value={formData.allergies}
-            onChange={(e) => handleInputChange('allergies', e.target.value)}
-            rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            placeholder="Bijv. noten, lactose-intolerant, vegetarisch..."
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Medische informatie
-          </label>
-          <textarea
-            value={formData.medicalInfo}
-            onChange={(e) => handleInputChange('medicalInfo', e.target.value)}
-            rows={3}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            placeholder="Relevante medische informatie voor leidinggevenden..."
-          />
         </div>
 
         {/* Notifications */}

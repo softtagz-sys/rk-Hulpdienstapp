@@ -28,20 +28,49 @@ async def get_current_user_token(
 async def get_current_user(
         token_user: Dict[str, Any] = Depends(get_current_user_token)
 ) -> User:
+    logger.info(f"Token user data: {token_user}")
+
     """Get current user model from database"""
     user_repo = UserRepository()
     user = await user_repo.get_by_id(token_user['user_id'])
 
     if not user:
-        # Create user if doesn't exist (first login after signup)
-        user_data = {
-            'user_id': token_user['user_id'],
-            'email': token_user['email'],
-            'name': token_user['name'],
-            'role': token_user['role']
-        }
-        user = await user_repo.create(User(**user_data))
+        try:
+            # Create user if doesn't exist (first login after signup)
+            user_data = {
+                'user_id': token_user['user_id'],
+                'email': token_user.get('email'),  # Use .get() to handle missing keys
+                'name': token_user.get('name', ''),
+                'role': token_user.get('role', 'volunteer'),
+                'departments': ['Sint-Job'],  # Add default department
+                'qualifications': [],
+                'is_active': True
+            }
 
+            # Validate email exists and is not None
+            if not user_data['email']:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email is required for user creation"
+                )
+
+            user = await user_repo.create(User(**user_data))
+
+            # Double-check user was created successfully
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create user account"
+                )
+
+        except Exception as e:
+            logger.error(f"Failed to create user: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to create user account"
+            )
+
+    # Now safely check is_active since we know user exists
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

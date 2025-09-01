@@ -15,6 +15,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   userAssignment,
   onPreferenceChange,
   showManagement = false
+
 }) => {
   const getPreferenceColor = (preference?: string) => {
     switch (preference) {
@@ -42,7 +43,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     }
   };
 
-  const occupancyPercentage = (service.assignedVolunteers.length / service.maxVolunteers) * 100;
+  const occupancyPercentage = (service.assigned_volunteers.length / service.max_volunteers) * 100;
 
   return (
     <div className="bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
@@ -67,7 +68,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           </div>
           <div className="flex items-center text-sm text-gray-600">
             <Clock size={16} className="mr-2" />
-            <span>{service.startTime} - {service.endTime}</span>
+            <span>{service.start_time || service.start_time} - {service.end_time || service.end_time}</span>
           </div>
           <div className="flex items-center text-sm text-gray-600">
             <MapPin size={16} className="mr-2" />
@@ -75,7 +76,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           </div>
           <div className="flex items-center text-sm text-gray-600">
             <Users size={16} className="mr-2" />
-            <span>{service.assignedVolunteers.length} / {service.maxVolunteers} vrijwilligers</span>
+            <span>{service.assigned_volunteers?.length || service.assigned_volunteers?.length || 0} / {service.max_volunteers || service.max_volunteers} vrijwilligers</span>
           </div>
         </div>
 
@@ -86,7 +87,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
               <span className="font-medium">{Math.round(occupancyPercentage)}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
+              <div
                 className="bg-red-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${occupancyPercentage}%` }}
               />

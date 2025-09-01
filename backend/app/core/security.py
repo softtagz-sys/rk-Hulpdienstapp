@@ -1,4 +1,6 @@
 import boto3
+from jose import jwk
+from jose.utils import base64url_decode
 from jose import JWTError, jwt
 from jose.constants import ALGORITHMS
 from fastapi import HTTPException, status
@@ -39,14 +41,14 @@ class CognitoJWTBearer(HTTPBearer):
                 detail="Could not fetch JWKS"
             )
 
-    def get_public_key(self, token_header: Dict[str, str]) -> str:
+    def get_public_key(self, token_header: Dict[str, str]):
         """Get public key for token verification"""
         jwks = self.get_jwks()
         kid = token_header.get('kid')
 
         for key in jwks.get('keys', []):
             if key.get('kid') == kid:
-                return jwt.construct_jwk_set([key])
+                return jwk.construct(key)
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -46,8 +46,10 @@ const ServiceRegistration: React.FC = () => {
   }
 
   const generateTimeSlots = () => {
-    const start = new Date(`2000-01-01T${service.startTime}`);
-    const end = new Date(`2000-01-01T${service.endTime}`);
+    const startTime = service.start_time;
+    const endTime = service.end_time;
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
     const slots = [];
     
     const current = new Date(start);
@@ -78,11 +80,14 @@ const ServiceRegistration: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      await apiService.registerForService(service.id, selectedHours, notes);
+      await apiService.registerForService(service.id, { 
+        preference,
+        notes: notes || undefined
+      });
       alert('Inschrijving succesvol verzonden!');
       navigate(`/services/${service.id}`);
     } catch (error) {
-      alert('Er is een fout opgetreden bij het verzenden van je inschrijving.');
+      alert(error instanceof Error ? error.message : 'Er is een fout opgetreden bij het verzenden van je inschrijving.');
     } finally {
       setIsSubmitting(false);
     }
@@ -116,7 +121,7 @@ const ServiceRegistration: React.FC = () => {
                 </div>
                 <div className="flex items-center text-gray-600">
                   <Clock size={16} className="mr-2" />
-                  <span>{service.startTime} - {service.endTime}</span>
+                  <span>{service.start_time} - {service.end_time}</span>
                 </div>
                 <div className="text-gray-600">
                   <strong>Locatie:</strong> {service.location}
@@ -149,7 +154,7 @@ const ServiceRegistration: React.FC = () => {
                           name="preference"
                           value={option.value}
                           checked={preference === option.value}
-                          onChange={(e) => setPreference(e.target.value as any)}
+                          onChange={(e) => setPreference(e.target.value as never)}
                           className="w-4 h-4 text-red-600 border-gray-300 focus:ring-red-500"
                         />
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${

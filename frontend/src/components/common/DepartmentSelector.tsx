@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { apiService } from '../../api/apiService';
 
 interface DepartmentSelectorProps {
   selectedDepartment: string;
@@ -10,7 +11,21 @@ const DepartmentSelector: React.FC<DepartmentSelectorProps> = ({
   selectedDepartment,
   onDepartmentChange
 }) => {
-  const departments = ['Sint-Job', 'Rand'];
+  const [departments, setDepartments] = React.useState<string[]>(['Sint-Job', 'Rand']);
+
+  React.useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const depts = await apiService.getDepartments();
+        setDepartments(depts.map(d => d.name));
+      } catch (error) {
+        console.error('Failed to fetch departments:', error);
+        // Keep default departments on error
+      }
+    };
+
+    fetchDepartments();
+  }, []);
 
   return (
     <div className="relative">

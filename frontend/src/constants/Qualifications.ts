@@ -1,0 +1,1 @@
+export const QUALIFICATIONS  = ['logistiek', 'eerstehulpverlener', 'eventhulpverlener', 'ambulancier', 'verpleegkundige', 'arts'];

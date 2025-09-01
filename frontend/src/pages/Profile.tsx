@@ -24,10 +24,10 @@ const Profile: React.FC = () => {
 
   const handleProfileSave = async (profileData: Partial<User>) => {
     try {
-      await apiService.updateProfile(profileData);
+      await apiService.updateMyProfile(profileData);
       await checkAuthStatus(); // Refresh user data
     } catch (error) {
-      throw new Error('Failed to update profile');
+      throw new Error(error instanceof Error ? error.message : 'Failed to update profile');
     }
   };
 
