@@ -240,12 +240,12 @@ async def assign_volunteer_to_service(
             detail="Service not found"
         )
 
-    # Check if service is full
-    if service.assigned_count >= service.max_volunteers:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Service is at maximum capacity"
-        )
+    # Check if service is full TODO: re-enable capacity check when min/max logic is defined
+    #if service.assigned_count >= service.min_volunteers:
+    #    raise HTTPException(
+    #        status_code=status.HTTP_400_BAD_REQUEST,
+    #        detail="Service is at maximum capacity"
+    #    )
 
     # Get assignment
     assignment = await assignment_repo.get_assignment(service_id, volunteer_id)
