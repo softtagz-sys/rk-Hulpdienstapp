@@ -170,6 +170,39 @@ async def update_service(
     return ServiceResponse(**service_dict)
 
 
+@router.delete("/{service_id}")
+async def delete_service(
+        service_id: str,
+        current_user: User = Depends(require_roles(["supervisor"]))
+):
+    """Delete service (supervisor only)"""
+    service_repo = ServiceRepository()
+    assignment_repo = ServiceAssignmentRepository()
+
+    # Check if service exists
+    existing_service = await service_repo.get_by_id(service_id)
+    if not existing_service:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Service not found"
+        )
+
+    # Delete all assignments for this service (both pending and assigned)
+    assignments = await assignment_repo.get_by_service(service_id)
+    for assignment in assignments:
+        await assignment_repo.delete_assignment(assignment.assignment_id)
+
+    # Delete the service
+    deleted = await service_repo.delete(service_id)
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete service"
+        )
+
+    return {"message": "Service deleted successfully", "service_id": service_id}
+
 @router.post("/{service_id}/register")
 async def register_for_service(
         service_id: str,
