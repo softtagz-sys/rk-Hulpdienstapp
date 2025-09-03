@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
-        "https://your-frontend-domain.com"
+        "https://d10f9z4q5ccbla.cloudfront.net" #TODO: change to production URL
     ]
 
     @property

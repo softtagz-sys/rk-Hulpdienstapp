@@ -26,7 +26,7 @@ const SupervisorDashboard: React.FC = () => {
 
   const upcomingServices = services.filter(s => new Date(s.date) >= new Date());
   const understaffedServices = services.filter(s =>
-      s.assigned_volunteers.length < s.max_volunteers * 0.8
+      s.assigned_volunteers.length < s.min_volunteers * 0.8
   );
   const totalVolunteers = services.reduce((acc, s) => acc + s.assigned_volunteers.length, 0);
 
@@ -116,7 +116,7 @@ const SupervisorDashboard: React.FC = () => {
                           <div>
                             <span className="font-medium">{service.title}</span>
                             <span className="text-sm text-gray-600 ml-2">
-                        ({service.assigned_volunteers.length}/{service.max_volunteers})
+                        ({service.assigned_volunteers.length}/{service.min_volunteers})
                       </span>
                           </div>
                           <Link

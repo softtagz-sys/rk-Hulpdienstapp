@@ -24,7 +24,7 @@ export interface Service {
   location: string;
   department: string;
   required_qualifications: string[];
-  max_volunteers: number;
+  min_volunteers: number;
   assigned_volunteers: ServiceAssignment[];
   assigned_count?: number;
   status: 'open' | 'closed' | 'cancelled';

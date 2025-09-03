@@ -24,7 +24,7 @@ export const useServices = (department?: string) => {
         startTime: service.start_time,
         endTime: service.end_time,
         requiredQualifications: service.required_qualifications || [],
-        maxVolunteers: service.max_volunteers,
+        minVolunteers: service.min_volunteers,
         assignedVolunteers: (service.assigned_volunteers || []).map(assignment => ({
           ...assignment,
           id: assignment.assignment_id || assignment.id,

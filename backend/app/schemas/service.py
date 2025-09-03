@@ -31,7 +31,7 @@ class ServiceBase(BaseModel):
     location: str = Field(..., min_length=1, max_length=200)
     department: str = Field(..., min_length=1)
     required_qualifications: List[str] = Field(default_factory=list)
-    max_volunteers: int = Field(..., ge=1, le=100)
+    min_volunteers: int = Field(..., ge=1, le=100)
 
 
 class ServiceCreate(ServiceBase):
@@ -47,7 +47,7 @@ class ServiceUpdate(BaseModel):
     location: Optional[str] = Field(None, min_length=1, max_length=200)
     department: Optional[str] = None
     required_qualifications: Optional[List[str]] = None
-    max_volunteers: Optional[int] = Field(None, ge=1, le=100)
+    min_volunteers: Optional[int] = Field(None, ge=1, le=100)
     status: Optional[ServiceStatus] = None
 
 

@@ -69,7 +69,7 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
           </div>
           <div className="flex items-center text-gray-600">
             <Users size={20} className="mr-3" />
-            <span>{service.assigned_volunteers?.length || 0} / {service.max_volunteers} vrijwilligers</span>
+            <span>{service.assigned_volunteers?.length || 0} / {service.min_volunteers} vrijwilligers</span>
           </div>
         </div>
 

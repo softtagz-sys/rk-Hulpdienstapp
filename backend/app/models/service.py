@@ -36,7 +36,7 @@ class ServiceAssignment(BaseModel):
 class Service(BaseModel):
     def __init__(self, service_id: str, title: str, description: str, date: str,
                  start_time: str, end_time: str, location: str, department: str,
-                 required_qualifications: List[str], max_volunteers: int,
+                 required_qualifications: List[str], min_volunteers: int,
                  status: str = "open", **kwargs):
         super().__init__(**kwargs)
         self.service_id = service_id
@@ -48,7 +48,7 @@ class Service(BaseModel):
         self.location = location
         self.department = department
         self.required_qualifications = required_qualifications
-        self.max_volunteers = max_volunteers
+        self.min_volunteers = min_volunteers
         self.status = status  # open, closed, cancelled
         self.assigned_count = kwargs.get('assigned_count', 0)
 
@@ -63,7 +63,7 @@ class Service(BaseModel):
             'location': self.location,
             'department': self.department,
             'required_qualifications': self.required_qualifications,
-            'max_volunteers': self.max_volunteers,
+            'min_volunteers': self.min_volunteers,
             'status': self.status,
             'assigned_count': self.assigned_count,
             'created_at': self.created_at,

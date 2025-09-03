@@ -22,7 +22,7 @@ const EditService: React.FC = () => {
     endTime: '',
     location: '',
     department: '',
-    maxVolunteers: 8,
+    minVolunteers: 2,
     requiredQualifications: [] as string[]
   });
 
@@ -41,7 +41,7 @@ const EditService: React.FC = () => {
         endTime: service.end_time,
         location: service.location,
         department: service.department,
-        maxVolunteers: service.max_volunteers,
+        minVolunteers: service.min_volunteers,
         requiredQualifications: service.required_qualifications
       });
     }
@@ -139,7 +139,7 @@ const EditService: React.FC = () => {
       setError('Locatie is verplicht');
       return false;
     }
-    if (formData.maxVolunteers < 1) {
+    if (formData.minVolunteers < 1) {
       setError('Minimaal 1 vrijwilliger vereist');
       return false;
     }
@@ -175,7 +175,7 @@ const EditService: React.FC = () => {
         location: formData.location,
         department: formData.department,
         required_qualifications: formData.requiredQualifications,
-        max_volunteers: formData.maxVolunteers
+        min_volunteers: formData.minVolunteers
       };
       
       await apiService.updateService(service.id, serviceData);
@@ -319,13 +319,13 @@ const EditService: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Users size={16} className="inline mr-2" />
-                  Maximum aantal vrijwilligers *
+                  Minimum aantal vrijwilligers *
                 </label>
                 <input
                   type="number"
                   min="1"
                   max="50"
-                  value={formData.maxVolunteers}
+                  value={formData.minVolunteers}
                   onChange={(e) => handleInputChange('maxVolunteers', parseInt(e.target.value))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   required

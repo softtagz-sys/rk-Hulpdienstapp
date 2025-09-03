@@ -18,7 +18,7 @@ const CreateService: React.FC = () => {
     endTime: '',
     location: '',
     department: user?.departments[0] || 'Sint-Job',
-    maxVolunteers: 8,
+    minVolunteers: 2,
     requiredQualifications: [] as string[]
   });
 
@@ -67,7 +67,7 @@ const CreateService: React.FC = () => {
       setError('Locatie is verplicht');
       return false;
     }
-    if (formData.maxVolunteers < 1) {
+    if (formData.minVolunteers < 1) {
       setError('Minimaal 1 vrijwilliger vereist');
       return false;
     }
@@ -103,7 +103,7 @@ const CreateService: React.FC = () => {
         location: formData.location,
         department: formData.department,
         required_qualifications: formData.requiredQualifications,
-        max_volunteers: formData.maxVolunteers
+        min_volunteers: formData.minVolunteers
       };
       
       await apiService.createService(serviceData);
@@ -267,14 +267,14 @@ const CreateService: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Users size={16} className="inline mr-2" />
-                  Maximum aantal vrijwilligers *
+                  Minimum aantal vrijwilligers *
                 </label>
                 <input
                   type="number"
                   min="1"
                   max="50"
-                  value={formData.maxVolunteers}
-                  onChange={(e) => handleInputChange('maxVolunteers', parseInt(e.target.value))}
+                  value={formData.minVolunteers}
+                  onChange={(e) => handleInputChange('minVolunteers', parseInt(e.target.value))}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   required
                 />

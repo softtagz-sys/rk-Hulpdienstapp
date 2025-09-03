@@ -139,7 +139,7 @@ class ApiService {
     location: string;
     department: string;
     required_qualifications?: string[];
-    max_volunteers: number;
+    min_volunteers: number;
   }): Promise<Service> {
     return this.request<Service>('/api/v1/services/', {
       method: 'POST',
@@ -156,7 +156,7 @@ class ApiService {
     location: string;
     department: string;
     required_qualifications: string[];
-    max_volunteers: number;
+    min_volunteers: number;
     status: 'open' | 'closed' | 'cancelled';
   }>): Promise<Service> {
     return this.request<Service>(`/api/v1/services/${serviceId}`, {
