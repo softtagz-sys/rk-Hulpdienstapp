@@ -1,0 +1,211 @@
+service: rk-backend
+
+provider:
+  name: aws
+  runtime: python3.11
+  region: eu-west-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  timeout: 30
+  apiGateway:
+    binaryMediaTypes:
+      - '*/*'
+
+  environment:
+    STAGE: ${self:provider.stage}
+    DYNAMODB_TABLE_PREFIX: rk-platform
+    COGNITO_USER_POOL_ID: ${cf:rk-frontend-${self:provider.stage}.CognitoUserPoolId}
+    COGNITO_CLIENT_ID: ${cf:rk-frontend-${self:provider.stage}.CognitoUserPoolClientId}
+    COGNITO_REGION: ${self:provider.region}
+    SECRET_KEY: ${env:SECRET_KEY, 'fallback'}
+    CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,https://d10f9z4q5ccbla.cloudfront.net"
+    ALLOWED_HOSTS: "*"
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - arn:aws:dynamodb:${self:provider.region}:*:table/rk-platform-*-${self:provider.stage}
+            - arn:aws:dynamodb:${self:provider.region}:*:table/rk-platform-*-${self:provider.stage}/index/*
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminGetUser
+            - cognito-idp:AdminListGroupsForUser
+          Resource:
+            - arn:aws:cognito-idp:${self:provider.region}:*:userpool/*
+
+plugins:
+  - serverless-python-requirements
+  - serverless-offline
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    slim: false
+    strip: false
+    noDeploy:
+      - boto3
+      - botocore
+  serverless-offline:
+    httpPort: 8000
+    lambdaPort: 3002
+
+functions:
+  api:
+    handler: app.main.handler
+    events:
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+      - http:
+          path: /
+          method: ANY
+          cors: true
+
+resources:
+  Resources:
+    # Users Table
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: rk-platform-users-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: EmailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+    # Services Table
+    ServicesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: rk-platform-services-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: service_id
+            AttributeType: S
+          - AttributeName: department
+            AttributeType: S
+          - AttributeName: date
+            AttributeType: S
+        KeySchema:
+          - AttributeName: service_id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: DepartmentIndex
+            KeySchema:
+              - AttributeName: department
+                KeyType: HASH
+              - AttributeName: date
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+    # Departments Table
+    DepartmentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: rk-platform-departments-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: department_id
+            AttributeType: S
+          - AttributeName: code
+            AttributeType: S
+        KeySchema:
+          - AttributeName: department_id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: CodeIndex
+            KeySchema:
+              - AttributeName: code
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    # Assignments Table
+    AssignmentsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: rk-platform-assignments-${self:provider.stage}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: assignment_id
+            AttributeType: S
+          - AttributeName: service_id
+            AttributeType: S
+          - AttributeName: volunteer_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: assignment_id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: ServiceIndex
+            KeySchema:
+              - AttributeName: service_id
+                KeyType: HASH
+              - AttributeName: volunteer_id
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+          - IndexName: VolunteerIndex
+            KeySchema:
+              - AttributeName: volunteer_id
+                KeyType: HASH
+              - AttributeName: service_id
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+  Outputs:
+    ApiGatewayRestApiId:
+      Value:
+        Ref: ApiGatewayRestApi
+      Export:
+        Name: ${self:service}-${self:provider.stage}-ApiGatewayRestApiId
+
+    ApiGatewayRestApiRootResourceId:
+      Value:
+        Fn::GetAtt:
+          - ApiGatewayRestApi
+          - RootResourceId
+      Export:
+        Name: ${self:service}-${self:provider.stage}-ApiGatewayRestApiRootResourceId
+
+    ApiUrl:
+      Description: "API Gateway endpoint URL"
+      Value:
+        Fn::Join:
+          - ""
+          - - "https://"
+            - Ref: ApiGatewayRestApi
+            - ".execute-api."
+            - ${self:provider.region}
+            - ".amazonaws.com/"
+            - ${self:provider.stage}

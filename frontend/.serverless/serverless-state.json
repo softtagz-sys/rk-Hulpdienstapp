@@ -1,0 +1,672 @@
+{
+  "service": {
+    "service": "rk-frontend",
+    "serviceObject": {
+      "name": "rk-frontend"
+    },
+    "provider": {
+      "name": "aws",
+      "region": "eu-west-1",
+      "stage": "dev",
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "WebAppS3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketName": "rk-frontend-app-dev",
+              "WebsiteConfiguration": {
+                "IndexDocument": "index.html",
+                "ErrorDocument": "index.html"
+              },
+              "OwnershipControls": {
+                "Rules": [
+                  {
+                    "ObjectOwnership": "BucketOwnerEnforced"
+                  }
+                ]
+              },
+              "PublicAccessBlockConfiguration": {
+                "BlockPublicAcls": true,
+                "BlockPublicPolicy": false,
+                "IgnorePublicAcls": true,
+                "RestrictPublicBuckets": false
+              },
+              "CorsConfiguration": {
+                "CorsRules": [
+                  {
+                    "AllowedHeaders": [
+                      "*"
+                    ],
+                    "AllowedMethods": [
+                      "GET",
+                      "PUT",
+                      "POST",
+                      "DELETE",
+                      "HEAD"
+                    ],
+                    "AllowedOrigins": [
+                      "*"
+                    ],
+                    "MaxAge": 3000
+                  }
+                ]
+              }
+            }
+          },
+          "CloudFrontOriginAccessIdentity": {
+            "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+            "Properties": {
+              "CloudFrontOriginAccessIdentityConfig": {
+                "Comment": "OAI for rk-frontend-app-dev"
+              }
+            }
+          },
+          "WebAppS3BucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "WebAppS3Bucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:GetObject",
+                    "Effect": "Allow",
+                    "Resource": {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "arn:aws:s3:::",
+                          {
+                            "Ref": "WebAppS3Bucket"
+                          },
+                          "/*"
+                        ]
+                      ]
+                    },
+                    "Principal": {
+                      "CanonicalUser": {
+                        "Fn::GetAtt": [
+                          "CloudFrontOriginAccessIdentity",
+                          "S3CanonicalUserId"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "CloudFrontDistribution": {
+            "Type": "AWS::CloudFront::Distribution",
+            "Properties": {
+              "DistributionConfig": {
+                "Origins": [
+                  {
+                    "DomainName": {
+                      "Fn::GetAtt": [
+                        "WebAppS3Bucket",
+                        "RegionalDomainName"
+                      ]
+                    },
+                    "Id": "WebApp",
+                    "S3OriginConfig": {
+                      "OriginAccessIdentity": {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "origin-access-identity/cloudfront/",
+                            {
+                              "Ref": "CloudFrontOriginAccessIdentity"
+                            }
+                          ]
+                        ]
+                      }
+                    }
+                  }
+                ],
+                "Enabled": true,
+                "DefaultRootObject": "index.html",
+                "CustomErrorResponses": [
+                  {
+                    "ErrorCode": 403,
+                    "ResponseCode": 200,
+                    "ResponsePagePath": "/index.html"
+                  },
+                  {
+                    "ErrorCode": 404,
+                    "ResponseCode": 200,
+                    "ResponsePagePath": "/index.html"
+                  }
+                ],
+                "DefaultCacheBehavior": {
+                  "AllowedMethods": [
+                    "DELETE",
+                    "GET",
+                    "HEAD",
+                    "OPTIONS",
+                    "PATCH",
+                    "POST",
+                    "PUT"
+                  ],
+                  "TargetOriginId": "WebApp",
+                  "ForwardedValues": {
+                    "QueryString": false,
+                    "Headers": [
+                      "Origin",
+                      "Access-Control-Request-Method",
+                      "Access-Control-Request-Headers"
+                    ],
+                    "Cookies": {
+                      "Forward": "none"
+                    }
+                  },
+                  "ViewerProtocolPolicy": "redirect-to-https"
+                },
+                "ViewerCertificate": {
+                  "CloudFrontDefaultCertificate": true
+                }
+              }
+            }
+          },
+          "CognitoUserPool": {
+            "Type": "AWS::Cognito::UserPool",
+            "Properties": {
+              "UserPoolName": "rk-frontend-userpool-dev",
+              "AutoVerifiedAttributes": [
+                "email"
+              ],
+              "UsernameAttributes": [
+                "email"
+              ],
+              "Schema": [
+                {
+                  "Name": "email",
+                  "Required": true,
+                  "Mutable": true,
+                  "AttributeDataType": "String"
+                },
+                {
+                  "Name": "name",
+                  "Required": true,
+                  "Mutable": true,
+                  "AttributeDataType": "String"
+                },
+                {
+                  "Name": "role",
+                  "AttributeDataType": "String",
+                  "Mutable": true,
+                  "DeveloperOnlyAttribute": false
+                }
+              ],
+              "Policies": {
+                "PasswordPolicy": {
+                  "MinimumLength": 8,
+                  "RequireUppercase": false,
+                  "RequireLowercase": false,
+                  "RequireNumbers": true,
+                  "RequireSymbols": false
+                }
+              }
+            }
+          },
+          "CognitoUserPoolClient": {
+            "Type": "AWS::Cognito::UserPoolClient",
+            "Properties": {
+              "ClientName": "rk-frontend-app-dev",
+              "UserPoolId": {
+                "Ref": "CognitoUserPool"
+              },
+              "GenerateSecret": false,
+              "ExplicitAuthFlows": [
+                "ADMIN_NO_SRP_AUTH",
+                "USER_PASSWORD_AUTH"
+              ],
+              "ReadAttributes": [
+                "email",
+                "name",
+                "custom:role"
+              ],
+              "WriteAttributes": [
+                "email",
+                "name",
+                "custom:role"
+              ],
+              "SupportedIdentityProviders": [
+                "COGNITO"
+              ],
+              "TokenValidityUnits": {
+                "AccessToken": "hours",
+                "IdToken": "hours",
+                "RefreshToken": "days"
+              },
+              "AccessTokenValidity": 24,
+              "IdTokenValidity": 24,
+              "RefreshTokenValidity": 30
+            }
+          },
+          "CognitoUserPoolDomain": {
+            "Type": "AWS::Cognito::UserPoolDomain",
+            "Properties": {
+              "Domain": "rk-frontend-dev",
+              "UserPoolId": {
+                "Ref": "CognitoUserPool"
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "serverless-framework-deployments-eu-west-1-f4db3534-6b71",
+            "Export": {
+              "Name": "sls-rk-frontend-dev-ServerlessDeploymentBucketName"
+            }
+          },
+          "WebAppS3BucketOutput": {
+            "Value": {
+              "Ref": "WebAppS3Bucket"
+            }
+          },
+          "CloudFrontDistributionId": {
+            "Value": {
+              "Ref": "CloudFrontDistribution"
+            }
+          },
+          "CloudFrontDistributionOutput": {
+            "Value": {
+              "Fn::GetAtt": [
+                "CloudFrontDistribution",
+                "DomainName"
+              ]
+            }
+          },
+          "CognitoUserPoolId": {
+            "Value": {
+              "Ref": "CognitoUserPool"
+            }
+          },
+          "CognitoUserPoolClientId": {
+            "Value": {
+              "Ref": "CognitoUserPoolClient"
+            }
+          },
+          "CognitoUserPoolDomain": {
+            "Value": {
+              "Ref": "CognitoUserPoolDomain"
+            }
+          }
+        }
+      }
+    },
+    "custom": {
+      "client": {
+        "bucketName": "rk-frontend-app-dev",
+        "distributionFolder": "dist",
+        "indexDocument": "index.html",
+        "errorDocument": "index.html",
+        "deploy": true,
+        "manageResources": false
+      },
+      "s3Sync": [
+        {
+          "bucketName": "rk-frontend-app-dev",
+          "localDir": "dist",
+          "deleteRemoved": true,
+          "params": [
+            {
+              "index.html": {
+                "CacheControl": "no-cache, no-store, must-revalidate"
+              }
+            },
+            {
+              "**/*.js": {
+                "CacheControl": "public, max-age=31536000"
+              }
+            },
+            {
+              "**/*.css": {
+                "CacheControl": "public, max-age=31536000"
+              }
+            },
+            {
+              "**/*.png": {
+                "CacheControl": "public, max-age=31536000"
+              }
+            },
+            {
+              "**/*.jpg": {
+                "CacheControl": "public, max-age=31536000"
+              }
+            }
+          ]
+        }
+      ],
+      "cloudfrontInvalidate": [
+        {
+          "distributionIdKey": "CloudFrontDistributionId",
+          "items": [
+            "/*"
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "serverless-finch",
+      "serverless-single-page-app-plugin",
+      "serverless-s3-sync",
+      "serverless-cloudfront-invalidate"
+    ],
+    "pluginsData": {},
+    "functions": {},
+    "resources": {
+      "Resources": {
+        "WebAppS3Bucket": {
+          "Type": "AWS::S3::Bucket",
+          "Properties": {
+            "BucketName": "rk-frontend-app-dev",
+            "WebsiteConfiguration": {
+              "IndexDocument": "index.html",
+              "ErrorDocument": "index.html"
+            },
+            "OwnershipControls": {
+              "Rules": [
+                {
+                  "ObjectOwnership": "BucketOwnerEnforced"
+                }
+              ]
+            },
+            "PublicAccessBlockConfiguration": {
+              "BlockPublicAcls": true,
+              "BlockPublicPolicy": false,
+              "IgnorePublicAcls": true,
+              "RestrictPublicBuckets": false
+            },
+            "CorsConfiguration": {
+              "CorsRules": [
+                {
+                  "AllowedHeaders": [
+                    "*"
+                  ],
+                  "AllowedMethods": [
+                    "GET",
+                    "PUT",
+                    "POST",
+                    "DELETE",
+                    "HEAD"
+                  ],
+                  "AllowedOrigins": [
+                    "*"
+                  ],
+                  "MaxAge": 3000
+                }
+              ]
+            }
+          }
+        },
+        "CloudFrontOriginAccessIdentity": {
+          "Type": "AWS::CloudFront::CloudFrontOriginAccessIdentity",
+          "Properties": {
+            "CloudFrontOriginAccessIdentityConfig": {
+              "Comment": "OAI for rk-frontend-app-dev"
+            }
+          }
+        },
+        "WebAppS3BucketPolicy": {
+          "Type": "AWS::S3::BucketPolicy",
+          "Properties": {
+            "Bucket": {
+              "Ref": "WebAppS3Bucket"
+            },
+            "PolicyDocument": {
+              "Statement": [
+                {
+                  "Action": "s3:GetObject",
+                  "Effect": "Allow",
+                  "Resource": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:aws:s3:::",
+                        {
+                          "Ref": "WebAppS3Bucket"
+                        },
+                        "/*"
+                      ]
+                    ]
+                  },
+                  "Principal": {
+                    "CanonicalUser": {
+                      "Fn::GetAtt": [
+                        "CloudFrontOriginAccessIdentity",
+                        "S3CanonicalUserId"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "CloudFrontDistribution": {
+          "Type": "AWS::CloudFront::Distribution",
+          "Properties": {
+            "DistributionConfig": {
+              "Origins": [
+                {
+                  "DomainName": {
+                    "Fn::GetAtt": [
+                      "WebAppS3Bucket",
+                      "RegionalDomainName"
+                    ]
+                  },
+                  "Id": "WebApp",
+                  "S3OriginConfig": {
+                    "OriginAccessIdentity": {
+                      "Fn::Join": [
+                        "",
+                        [
+                          "origin-access-identity/cloudfront/",
+                          {
+                            "Ref": "CloudFrontOriginAccessIdentity"
+                          }
+                        ]
+                      ]
+                    }
+                  }
+                }
+              ],
+              "Enabled": true,
+              "DefaultRootObject": "index.html",
+              "CustomErrorResponses": [
+                {
+                  "ErrorCode": 403,
+                  "ResponseCode": 200,
+                  "ResponsePagePath": "/index.html"
+                },
+                {
+                  "ErrorCode": 404,
+                  "ResponseCode": 200,
+                  "ResponsePagePath": "/index.html"
+                }
+              ],
+              "DefaultCacheBehavior": {
+                "AllowedMethods": [
+                  "DELETE",
+                  "GET",
+                  "HEAD",
+                  "OPTIONS",
+                  "PATCH",
+                  "POST",
+                  "PUT"
+                ],
+                "TargetOriginId": "WebApp",
+                "ForwardedValues": {
+                  "QueryString": false,
+                  "Headers": [
+                    "Origin",
+                    "Access-Control-Request-Method",
+                    "Access-Control-Request-Headers"
+                  ],
+                  "Cookies": {
+                    "Forward": "none"
+                  }
+                },
+                "ViewerProtocolPolicy": "redirect-to-https"
+              },
+              "ViewerCertificate": {
+                "CloudFrontDefaultCertificate": true
+              }
+            }
+          }
+        },
+        "CognitoUserPool": {
+          "Type": "AWS::Cognito::UserPool",
+          "Properties": {
+            "UserPoolName": "rk-frontend-userpool-dev",
+            "AutoVerifiedAttributes": [
+              "email"
+            ],
+            "UsernameAttributes": [
+              "email"
+            ],
+            "Schema": [
+              {
+                "Name": "email",
+                "Required": true,
+                "Mutable": true,
+                "AttributeDataType": "String"
+              },
+              {
+                "Name": "name",
+                "Required": true,
+                "Mutable": true,
+                "AttributeDataType": "String"
+              },
+              {
+                "Name": "role",
+                "AttributeDataType": "String",
+                "Mutable": true,
+                "DeveloperOnlyAttribute": false
+              }
+            ],
+            "Policies": {
+              "PasswordPolicy": {
+                "MinimumLength": 8,
+                "RequireUppercase": false,
+                "RequireLowercase": false,
+                "RequireNumbers": true,
+                "RequireSymbols": false
+              }
+            }
+          }
+        },
+        "CognitoUserPoolClient": {
+          "Type": "AWS::Cognito::UserPoolClient",
+          "Properties": {
+            "ClientName": "rk-frontend-app-dev",
+            "UserPoolId": {
+              "Ref": "CognitoUserPool"
+            },
+            "GenerateSecret": false,
+            "ExplicitAuthFlows": [
+              "ADMIN_NO_SRP_AUTH",
+              "USER_PASSWORD_AUTH"
+            ],
+            "ReadAttributes": [
+              "email",
+              "name",
+              "custom:role"
+            ],
+            "WriteAttributes": [
+              "email",
+              "name",
+              "custom:role"
+            ],
+            "SupportedIdentityProviders": [
+              "COGNITO"
+            ],
+            "TokenValidityUnits": {
+              "AccessToken": "hours",
+              "IdToken": "hours",
+              "RefreshToken": "days"
+            },
+            "AccessTokenValidity": 24,
+            "IdTokenValidity": 24,
+            "RefreshTokenValidity": 30
+          }
+        },
+        "CognitoUserPoolDomain": {
+          "Type": "AWS::Cognito::UserPoolDomain",
+          "Properties": {
+            "Domain": "rk-frontend-dev",
+            "UserPoolId": {
+              "Ref": "CognitoUserPool"
+            }
+          }
+        }
+      },
+      "Outputs": {
+        "WebAppS3BucketOutput": {
+          "Value": {
+            "Ref": "WebAppS3Bucket"
+          }
+        },
+        "CloudFrontDistributionId": {
+          "Value": {
+            "Ref": "CloudFrontDistribution"
+          }
+        },
+        "CloudFrontDistributionOutput": {
+          "Value": {
+            "Fn::GetAtt": [
+              "CloudFrontDistribution",
+              "DomainName"
+            ]
+          }
+        },
+        "CognitoUserPoolId": {
+          "Value": {
+            "Ref": "CognitoUserPool"
+          }
+        },
+        "CognitoUserPoolClientId": {
+          "Value": {
+            "Ref": "CognitoUserPoolClient"
+          }
+        },
+        "CognitoUserPoolDomain": {
+          "Value": {
+            "Ref": "CognitoUserPoolDomain"
+          }
+        }
+      }
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless",
+    "initialServerlessConfig": {
+      "service": "rk-frontend",
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "plugins": {
+        "$ref": "$[\"service\"][\"plugins\"]"
+      },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      }
+    },
+    "appId": null,
+    "orgId": null,
+    "layers": {}
+  },
+  "package": {
+    "artifactDirectoryName": "serverless/rk-frontend/dev/1762040086780-2025-11-01T23:34:46.780Z",
+    "artifact": ""
+  }
+}
