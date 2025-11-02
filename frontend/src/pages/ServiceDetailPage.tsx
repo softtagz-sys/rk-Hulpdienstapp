@@ -1,15 +1,21 @@
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Edit, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Edit, Users, Trash2 } from 'lucide-react';
 import { useServices } from '../hooks/useServices';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../contexts/ToastContext';
+import { apiService } from '../api/apiService';
 import ServiceDetail from '../components/services/ServiceDetail';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const ServiceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { services, isLoading, assignVolunteer } = useServices();
+  const navigate = useNavigate();
+  const { showToast } = useToast();
+  const { services, isLoading, assignVolunteer, fetchServices } = useServices();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (isLoading) {
     return (
@@ -50,6 +56,23 @@ const ServiceDetailPage: React.FC = () => {
     return assignVolunteer(service.id, volunteerId);
   } : undefined;
 
+  const handleDeleteService = async () => {
+    if (!id) return;
+
+    setIsDeleting(true);
+    try {
+      await apiService.deleteService(id);
+      showToast('Dienst succesvol verwijderd', 'success');
+      navigate('/');
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Fout bij verwijderen dienst';
+      showToast(errorMsg, 'error');
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   return (
       <div className="min-h-screen bg-gray-100">
         <div className="container mx-auto px-4 py-8">
@@ -69,13 +92,22 @@ const ServiceDetailPage: React.FC = () => {
 
             <div className="flex items-center space-x-4">
               {canManage && (
-                  <Link
-                      to={`/services/${service.id}/edit`}
-                      className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Edit size={16} />
-                    <span>Bewerken</span>
-                  </Link>
+                  <>
+                    <Link
+                        to={`/services/${service.id}/edit`}
+                        className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Edit size={16} />
+                      <span>Bewerken</span>
+                    </Link>
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      <Trash2 size={16} />
+                      <span>Verwijderen</span>
+                    </button>
+                  </>
               )}
               {!userAssignment && user?.role === 'volunteer' && (
                   <Link
@@ -94,6 +126,7 @@ const ServiceDetailPage: React.FC = () => {
               service={service}
               onAssignVolunteer={handleAssignVolunteer}
               showManagement={canManage}
+              onVolunteerAdded={fetchServices}
           />
 
           {/* User Status */}
@@ -131,6 +164,36 @@ const ServiceDetailPage: React.FC = () => {
                   >
                     Wijzig inschrijving
                   </Link>
+                </div>
+              </div>
+          )}
+
+          {/* Delete Confirmation Modal */}
+          {showDeleteConfirm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Dienst Verwijderen</h3>
+                  <p className="text-gray-600 mb-6">
+                    Weet je zeker dat je deze dienst wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.
+                    Alle inschrijvingen en toewijzingen zullen ook worden verwijderd.
+                  </p>
+                  <div className="flex justify-end space-x-4">
+                    <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        disabled={isDeleting}
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                      Annuleren
+                    </button>
+                    <button
+                        onClick={handleDeleteService}
+                        disabled={isDeleting}
+                        className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={16} />
+                      <span>{isDeleting ? 'Verwijderen...' : 'Verwijderen'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
           )}

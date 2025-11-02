@@ -1,6 +1,6 @@
 {
   "C:\\rk-development\\rk-Hulpdienstapp\\frontend\\serverless.yml": {
-    "versionFramework": "4.18.2",
+    "versionFramework": "4.22.0",
     "servicePath": "C:\\rk-development\\rk-Hulpdienstapp\\frontend\\serverless.yml",
     "serviceConfigFileName": "serverless.yml",
     "service": {

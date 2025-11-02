@@ -1,16 +1,19 @@
 import React from 'react';
 import { Calendar, Clock, MapPin, Users, Award, Phone, Mail } from 'lucide-react';
+import VolunteerSearch from './VolunteerSearch';
 import type { Service } from '../../types';
 
 interface ServiceDetailProps {
   service: Service;
   onAssignVolunteer?: (volunteerId: string) => void;
   showManagement?: boolean;
+  onVolunteerAdded?: () => void;
 }
 
 const ServiceDetail: React.FC<ServiceDetailProps> = ({
   service,
-  showManagement = false
+  showManagement = false,
+  onVolunteerAdded
 }) => {
   const getQualificationIcon = () => {
     return <Award size={16} className="text-blue-600" />;
@@ -148,6 +151,15 @@ const ServiceDetail: React.FC<ServiceDetailProps> = ({
           </div>
         )}
       </div>
+
+      {/* Volunteer Search - Supervisor Only */}
+      {showManagement && onVolunteerAdded && (
+        <VolunteerSearch
+          serviceId={service.id}
+          serviceDepartment={service.department}
+          onVolunteerAdded={onVolunteerAdded}
+        />
+      )}
     </div>
   );
 };

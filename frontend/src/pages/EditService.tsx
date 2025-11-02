@@ -333,29 +333,6 @@ const EditService: React.FC = () => {
               </div>
             </div>
 
-            {/* Required Qualifications */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Vereiste kwalificaties
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {availableQualifications.map(qualification => (
-                  <label key={qualification} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.requiredQualifications.includes(qualification)}
-                      onChange={() => handleQualificationToggle(qualification)}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                    />
-                    <span className="text-sm text-gray-700 capitalize">{qualification}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Selecteer de kwalificaties die vereist zijn voor deze dienst.
-              </p>
-            </div>
-
             {/* Submit Button */}
             <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
               <Link

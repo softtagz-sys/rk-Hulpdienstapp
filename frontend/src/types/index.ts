@@ -21,6 +21,8 @@ export interface Service {
   date: string;
   start_time: string;
   end_time: string;
+  end_date: string;
+  rv_time?: string;
   location: string;
   department: string;
   required_qualifications: string[];

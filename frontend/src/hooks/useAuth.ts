@@ -12,6 +12,19 @@ export const useAuth = () => {
     checkAuthStatus();
   }, []);
 
+  // Force re-check when returning to the app (e.g., from another tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isAuthenticated) {
+        // Re-verify auth when tab becomes visible
+        checkAuthStatus();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isAuthenticated]);
+
   const checkAuthStatus = async () => {
     try {
       const currentUser = await getCurrentUser();
@@ -164,8 +177,13 @@ export const useAuth = () => {
       localStorage.removeItem('authToken');
       setUser(null);
       setIsAuthenticated(false);
+      // Navigation will be handled automatically by App.tsx when isAuthenticated changes
     } catch (error) {
       console.error('Logout failed:', error);
+      // Still clear state even if signOut fails
+      localStorage.removeItem('authToken');
+      setUser(null);
+      setIsAuthenticated(false);
     }
   };
 

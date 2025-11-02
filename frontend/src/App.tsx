@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Header from './components/common/Header';
 import LoadingSpinner from './components/common/LoadingSpinner';
@@ -15,7 +15,9 @@ import EditService from './pages/EditService';
 
 const App: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const location = useLocation();
 
+  // Show loading spinner until auth check completes
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -24,40 +26,60 @@ const App: React.FC = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <Router>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="*" element={<Navigate to="/login" />} />
-        </Routes>
-      </Router>
-    );
+  // Don't render anything if auth check failed but we're on a protected route
+  // This prevents the flash of "not logged in" message
+  if (!isAuthenticated && !isLoading && !['/login', '/signup'].includes(location.pathname)) {
+    // Will be redirected by the route guard below
   }
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-100">
-        <Header />
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              user?.role === 'supervisor' ? 
-                <SupervisorDashboard /> : 
-                <VolunteerDashboard />
-            } 
-          />
-          <Route path="/services/:id" element={<ServiceDetailPage />} />
-          <Route path="/services/:id/register" element={<ServiceRegistration />} />
-          <Route path="/services/:id/edit" element={<EditService />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/services/create" element={<CreateService />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </div>
-    </Router>
+    <div className="min-h-screen bg-gray-100">
+      {isAuthenticated && <Header />}
+      <Routes>
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />}
+        />
+        <Route
+          path="/signup"
+          element={!isAuthenticated ? <Signup /> : <Navigate to="/" replace />}
+        />
+
+        {/* Protected routes */}
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              user?.role === 'supervisor' ? <SupervisorDashboard /> : <VolunteerDashboard />
+            ) : (
+              <Navigate to="/login" state={{ from: location }} replace />
+            )
+          }
+        />
+        <Route
+          path="/services/:id"
+          element={isAuthenticated ? <ServiceDetailPage /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/services/:id/register"
+          element={isAuthenticated ? <ServiceRegistration /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/services/:id/edit"
+          element={isAuthenticated ? <EditService /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/profile"
+          element={isAuthenticated ? <Profile /> : <Navigate to="/login" replace />}
+        />
+        <Route
+          path="/services/create"
+          element={isAuthenticated ? <CreateService /> : <Navigate to="/login" replace />}
+        />
+        <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
+      </Routes>
+    </div>
   );
 };
 

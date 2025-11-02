@@ -46,7 +46,7 @@ app.add_middleware(
 # Add trusted host middleware for security
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"]  # TODO Configure this properly for production
+    allowed_hosts=settings.ALLOWED_HOSTS_LIST
 )
 
 

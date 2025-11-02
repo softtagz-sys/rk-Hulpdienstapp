@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
+from pydantic import Field, field_validator
+from typing import Optional, List, Union
 import os
 
 
@@ -11,25 +12,34 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "Backend API for Rode Kruis Volunteer Platform"
 
     # AWS Settings
-    AWS_REGION: str = os.getenv("AWS_REGION", "eu-west-1")
-    DYNAMODB_TABLE_PREFIX: str = os.getenv("DYNAMODB_TABLE_PREFIX", "rk-platform")
-    STAGE: str = os.getenv("STAGE", "dev")
+    AWS_REGION: str = "eu-west-1"
+    DYNAMODB_TABLE_PREFIX: str = "rk-platform"
+    STAGE: str = "dev"
 
     # Cognito Settings
-    COGNITO_USER_POOL_ID: str = os.getenv("COGNITO_USER_POOL_ID", "")
-    COGNITO_CLIENT_ID: str = os.getenv("COGNITO_CLIENT_ID", "")
-    COGNITO_REGION: str = os.getenv("COGNITO_REGION", "eu-west-1")
+    COGNITO_USER_POOL_ID: str = ""
+    COGNITO_CLIENT_ID: str = ""
+    COGNITO_REGION: str = "eu-west-1"
 
     # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+    SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
-    # CORS
-    BACKEND_CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://d10f9z4q5ccbla.cloudfront.net" #TODO: change to production URL
-    ]
+    # CORS - will be parsed from comma-separated string to list
+    CORS_ORIGINS: str = Field(default="http://localhost:3000,http://localhost:5173")
+
+    # Allowed hosts - will be parsed from comma-separated string to list
+    ALLOWED_HOSTS: str = Field(default="*")
+
+    @property
+    def BACKEND_CORS_ORIGINS(self) -> List[str]:
+        """Parse and return CORS origins as list"""
+        return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+    @property
+    def ALLOWED_HOSTS_LIST(self) -> List[str]:
+        """Parse and return allowed hosts as list"""
+        return [host.strip() for host in self.ALLOWED_HOSTS.split(",") if host.strip()]
 
     @property
     def users_table_name(self) -> str:

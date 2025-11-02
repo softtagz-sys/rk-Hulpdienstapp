@@ -41,18 +41,22 @@ async def update_my_profile(
 async def list_users(
         department: Optional[str] = Query(None, description="Filter by department"),
         role: Optional[str] = Query(None, description="Filter by role"),
+        search: Optional[str] = Query(None, description="Search by name"),
         current_user: User = Depends(require_roles(["supervisor"]))
 ):
     """List users (supervisor only)"""
     user_repo = UserRepository()
 
-    if department:
+    # If search parameter is provided, use search_by_name
+    if search:
+        users = await user_repo.search_by_name(search, department=department, role=role)
+    elif department:
         users = await user_repo.get_by_department(department)
     else:
         users = await user_repo.list_all()
 
-    # Filter by role if specified
-    if role:
+    # Filter by role if specified and not using search (search already filters by role)
+    if role and not search:
         users = [user for user in users if user.role == role]
 
     return [UserResponse(**user.to_dict()) for user in users]

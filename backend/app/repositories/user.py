@@ -49,3 +49,30 @@ class UserRepository(BaseRepository[User]):
                               Attr('is_active').eq(True)
         )
         return [self._to_model(item) for item in items]
+
+    async def search_by_name(self, name: str, department: Optional[str] = None, role: Optional[str] = None) -> List[User]:
+        """Search users by name (case-insensitive partial match)"""
+        # Build filter expression - search in name field (case-insensitive)
+        filter_expr = Attr('is_active').eq(True)
+
+        # Add department filter if specified
+        if department:
+            filter_expr = filter_expr & Attr('departments').contains(department)
+
+        # Add role filter if specified
+        if role:
+            filter_expr = filter_expr & Attr('role').eq(role)
+
+        items = await self.db.scan_items(
+            self.table_name,
+            filter_expression=filter_expr
+        )
+
+        # Filter by name on the client side (DynamoDB doesn't support case-insensitive contains)
+        name_lower = name.lower()
+        filtered_users = [
+            self._to_model(item) for item in items
+            if name_lower in item.get('name', '').lower()
+        ]
+
+        return filtered_users

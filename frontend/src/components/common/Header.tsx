@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Menu, X, LogOut } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    await logout();
     setIsMenuOpen(false);
+    await logout();
+    // Force navigation after logout
+    navigate('/login', { replace: true });
   };
 
   return (

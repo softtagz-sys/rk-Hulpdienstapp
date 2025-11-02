@@ -29,13 +29,13 @@ const Login: React.FC = () => {
     setError('');
 
     const result = await login(formData.email, formData.password);
-    
+
     if (result.success) {
-      navigate('/');
+      navigate('/', { replace: true });
     } else {
       setError(result.error || 'Inloggen mislukt');
     }
-    
+
     setIsSubmitting(false);
   };
 
@@ -83,7 +83,7 @@ const Login: React.FC = () => {
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="naam@rodekruis.nl"
+                placeholder="naam@vrijwilliger.rodekruis.be"
                 required
               />
             </div>
@@ -139,7 +139,7 @@ const Login: React.FC = () => {
 
           <div className="border-t border-gray-200 pt-6">
             <div className="text-center text-sm text-gray-500">
-              <p className="mb-2">Test met uw @vrijwilliger.rodekruis.be account</p>
+              <p className="mb-2">Log in met uw @vrijwilliger.rodekruis.be account</p>
               <div className="space-y-1 text-xs">
                 <p>Nog geen account? Maak er een aan met uw organisatie e-mail.</p>
               </div>

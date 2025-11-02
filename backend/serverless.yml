@@ -18,6 +18,8 @@ provider:
     COGNITO_CLIENT_ID: ${cf:rk-frontend-${self:provider.stage}.CognitoUserPoolClientId}
     COGNITO_REGION: ${self:provider.region}
     SECRET_KEY: ${env:SECRET_KEY, 'fallback'}
+    CORS_ORIGINS: "http://localhost:3000,http://localhost:5173,https://d10f9z4q5ccbla.cloudfront.net"
+    ALLOWED_HOSTS: "*"
 
   iam:
     role:

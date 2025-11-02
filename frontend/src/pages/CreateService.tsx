@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Calendar, Clock, MapPin, Users } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../contexts/ToastContext';
 import {apiService} from "../api/apiService.ts";
 import {QUALIFICATIONS} from "../constants/Qualifications.ts";
 
 const CreateService: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -16,6 +18,8 @@ const CreateService: React.FC = () => {
     date: '',
     startTime: '',
     endTime: '',
+    endDate: '',
+    rvTime: '',
     location: '',
     department: user?.departments[0] || 'Sint-Job',
     minVolunteers: 2,
@@ -26,10 +30,16 @@ const CreateService: React.FC = () => {
   const departments = ['Sint-Job'];
 
   const handleInputChange = (field: string, value: string | number | string[]) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const updates: any = { [field]: value };
+
+      // Auto-set end date to start date when start date changes
+      if (field === 'date' && !prev.endDate) {
+        updates.endDate = value;
+      }
+
+      return { ...prev, ...updates };
+    });
     setError('');
   };
 
@@ -72,11 +82,24 @@ const CreateService: React.FC = () => {
       return false;
     }
 
-    // Check if end time is after start time
-    const startTime = new Date(`2000-01-01T${formData.startTime}`);
-    const endTime = new Date(`2000-01-01T${formData.endTime}`);
-    if (endTime <= startTime) {
-      setError('Eindtijd moet na starttijd zijn');
+    if (!formData.endDate) {
+      setError('Einddatum is verplicht');
+      return false;
+    }
+
+    // Validate dates and times with proper date handling
+    const startDateTime = new Date(`${formData.date}T${formData.startTime}`);
+    const endDateTime = new Date(`${formData.endDate}T${formData.endTime}`);
+
+    if (endDateTime <= startDateTime) {
+      setError('Einddatum/tijd moet na startdatum/tijd zijn');
+      return false;
+    }
+
+    // Check if shift is not unreasonably long (more than 7 days)
+    const diffDays = (endDateTime.getTime() - startDateTime.getTime()) / (1000 * 60 * 60 * 24);
+    if (diffDays > 7) {
+      setError('Diensten kunnen maximaal 7 dagen duren');
       return false;
     }
 
@@ -100,6 +123,8 @@ const CreateService: React.FC = () => {
         date: formData.date,
         start_time: formData.startTime,
         end_time: formData.endTime,
+        end_date: formData.endDate,
+        rv_time: formData.rvTime || undefined,
         location: formData.location,
         department: formData.department,
         required_qualifications: formData.requiredQualifications,
@@ -107,11 +132,12 @@ const CreateService: React.FC = () => {
       };
       
       await apiService.createService(serviceData);
-      
-      alert('Dienst succesvol aangemaakt!');
+
+      // Silent success - just navigate (per UX feedback)
       navigate('/');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Er is een fout opgetreden bij het aanmaken van de dienst.');
+      const errorMsg = error instanceof Error ? error.message : 'Er is een fout opgetreden bij het aanmaken van de dienst.';
+      showToast(errorMsg, 'error', 5000);
     } finally {
       setIsSubmitting(false);
     }
@@ -195,28 +221,13 @@ const CreateService: React.FC = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Calendar size={16} className="inline mr-2" />
-                  Datum *
+                  Startdatum *
                 </label>
                 <input
                   type="date"
                   value={formData.date}
                   onChange={(e) => handleInputChange('date', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <MapPin size={16} className="inline mr-2" />
-                  Locatie *
-                </label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => handleInputChange('location', e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Bijv. Scheveningen Beach"
                   required
                 />
               </div>
@@ -230,6 +241,23 @@ const CreateService: React.FC = () => {
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => handleInputChange('startTime', e.target.value)}
+                  step="900"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">24-uurs formaat (bijv. 14:30)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Calendar size={16} className="inline mr-2" />
+                  Einddatum *
+                </label>
+                <input
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => handleInputChange('endDate', e.target.value)}
+                  min={formData.date}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   required
                 />
@@ -244,7 +272,39 @@ const CreateService: React.FC = () => {
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => handleInputChange('endTime', e.target.value)}
+                  step="900"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">24-uurs formaat (bijv. 23:45)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Clock size={16} className="inline mr-2" />
+                  RV tijd (Rendez-vous)
+                </label>
+                <input
+                  type="time"
+                  value={formData.rvTime}
+                  onChange={(e) => handleInputChange('rvTime', e.target.value)}
+                  step="900"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Verzameltijd voor vrijwilligers (optioneel)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin size={16} className="inline mr-2" />
+                  Locatie *
+                </label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Bijv. Scheveningen Beach"
                   required
                 />
               </div>
@@ -279,29 +339,6 @@ const CreateService: React.FC = () => {
                   required
                 />
               </div>
-            </div>
-
-            {/* Required Qualifications */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Vereiste kwalificaties
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {availableQualifications.map(qualification => (
-                  <label key={qualification} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.requiredQualifications.includes(qualification)}
-                      onChange={() => handleQualificationToggle(qualification)}
-                      className="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500"
-                    />
-                    <span className="text-sm text-gray-700 capitalize">{qualification}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Selecteer de kwalificaties die vereist zijn voor deze dienst.
-              </p>
             </div>
 
             {/* Submit Button */}

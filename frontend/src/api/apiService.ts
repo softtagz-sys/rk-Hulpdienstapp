@@ -84,23 +84,48 @@ class ApiService {
     });
   }
 
-  async listUsers(department?: string, role?: string): Promise<User[]> {
+  async listUsers(filters?: {
+    department?: string;
+    role?: string;
+    search?: string;
+  }): Promise<User[]> {
     const params = new URLSearchParams();
-    if (department) params.append('department', department);
-    if (role) params.append('role', role);
-    
+    if (filters?.department) params.append('department', filters.department);
+    if (filters?.role) params.append('role', filters.role);
+    if (filters?.search) params.append('search', filters.search);
+
     const queryString = params.toString();
     const endpoint = `/api/v1/users/${queryString ? `?${queryString}` : ''}`;
-    
-    return this.request<User[]>(endpoint);
+
+    const users = await this.request<User[]>(endpoint);
+
+    // Transform user_id to id for frontend consistency
+    return users.map(user => ({
+      ...user,
+      id: user.user_id || user.id
+    }));
+  }
+
+  async searchVolunteers(name: string, department?: string): Promise<User[]> {
+    return this.listUsers({ search: name, department, role: 'volunteer' });
   }
 
   async getUser(userId: string): Promise<User> {
-    return this.request<User>(`/api/v1/users/${userId}`);
+    const user = await this.request<User>(`/api/v1/users/${userId}`);
+    // Transform user_id to id for frontend consistency
+    return {
+      ...user,
+      id: user.user_id || user.id
+    };
   }
 
   async getQualifiedVolunteers(qualification: string): Promise<User[]> {
-    return this.request<User[]>(`/api/v1/users/volunteers/qualified?qualification=${qualification}`);
+    const users = await this.request<User[]>(`/api/v1/users/volunteers/qualified?qualification=${qualification}`);
+    // Transform user_id to id for frontend consistency
+    return users.map(user => ({
+      ...user,
+      id: user.user_id || user.id
+    }));
   }
 
   // Service endpoints
@@ -162,6 +187,12 @@ class ApiService {
     return this.request<Service>(`/api/v1/services/${serviceId}`, {
       method: 'PUT',
       body: JSON.stringify(serviceData)
+    });
+  }
+
+  async deleteService(serviceId: string): Promise<void> {
+    return this.request(`/api/v1/services/${serviceId}`, {
+      method: 'DELETE'
     });
   }
 
